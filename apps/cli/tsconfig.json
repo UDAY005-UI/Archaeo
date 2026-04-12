@@ -1,0 +1,10 @@
+{
+  "extends": "@archaeo/typescript-config/node.json",
+  "compilerOptions": {
+    "rootDir": "src",
+  },
+  "include": [
+      "src/**/*.ts",
+  "test/**/*.ts"
+  ]
+}

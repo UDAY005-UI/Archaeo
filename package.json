@@ -1,22 +1,45 @@
 {
   "name": "archaeo",
   "private": true,
+  "type": "module",
   "scripts": {
-    "build": "turbo run build",
     "dev": "turbo run dev",
+    "build": "turbo run build",
+    "start": "turbo run start",
     "lint": "turbo run lint",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
-    "check-types": "turbo run check-types"
+    "check-types": "turbo run check-types",
+    "clean": "turbo run clean && rm -rf node_modules .turbo",
+    "db:generate": "turbo run db:generate",
+    "db:migrate": "turbo run db:migrate",
+    "db:studio": "turbo run db:studio",
+    "db:seed": "ts-node scripts/seed.ts",
+    "queue:clear": "ts-node scripts/clear-queue.ts",
+    "queue:retry": "ts-node scripts/retry-failed.ts",
+    "dev:api": "turbo run dev --filter=api-service",
+    "dev:workers": "turbo run dev --filter=worker-*",
+    "dev:web": "turbo run dev --filter=web",
+    "docker:up": "docker compose -f docker/docker-compose.yml up -d",
+    "docker:down": "docker compose -f docker/docker-compose.yml down",
+    "build:apps": "turbo run build --filter=apps/*",
+    "build:packages": "turbo run build --filter=packages/*",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "**/*.{js,mjs,jsx,ts,tsx,md}": "prettier --write"
   },
   "devDependencies": {
+    "husky": "^9.1.7",
+    "lint-staged": "^16.4.0",
     "prettier": "^3.7.4",
-    "turbo": "^2.9.6",
-    "typescript": "5.9.2"
+    "turbo": "^2.8.17",
+    "typescript": "5.9.2",
+    "typescript-eslint": "^8.57.1"
   },
   "engines": {
     "node": ">=18"
   },
-  "packageManager": "yarn@1.22.22",
+  "packageManager": "yarn@4.13.0",
   "workspaces": [
     "apps/*",
     "packages/*"

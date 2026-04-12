@@ -7,6 +7,22 @@
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
       "outputs": [".next/**", "!.next/cache/**"]
     },
+
+    "cli#build": {
+      "dependsOn": ["^build"],
+      "env": [],
+      "cache": false
+    },
+    "web#build":{
+      "dependsOn": ["^build"],
+      "env": [],
+      "cache": false
+    },
+    "docs#build":{
+      "dependsOn": ["^build"],
+      "env": [],
+      "cache": false
+    },
     "lint": {
       "dependsOn": ["^lint"]
     },
