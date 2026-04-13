@@ -1,6 +1,7 @@
 {
   "extends": "@archaeo/typescript-config/node.json",
   "compilerOptions": {
+    "types": ["node"],
     "rootDir": "src",
   },
   "include": [
