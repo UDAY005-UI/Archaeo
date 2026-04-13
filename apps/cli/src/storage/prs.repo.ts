@@ -105,6 +105,29 @@ export function findByFile(
     }
 }
 
+export function findByCommit(
+    db: Database.Database,
+    hash: string
+): PullRequest | null {
+    const row = db
+        .prepare(
+            `
+    SELECT * FROM pull_requests WHERE EXISTS (
+      SELECT 1 FROM json_each(pull_requests.commits)
+      WHERE json_each.value = ?
+    )
+  `
+        )
+        .get(hash) as PullRequestRow | undefined;
+
+    if (!row) return null;
+    return {
+        ...row,
+        files: JSON.parse(row.files),
+        commits: JSON.parse(row.commits),
+    };
+}
+
 export function count(db: Database.Database): number {
     try {
         const row = db

@@ -1,16 +1,22 @@
 import Database from "better-sqlite3";
+import { getLoadablePath } from "sqlite-vec";
 
-const db = new Database("./mydb.db");
+export function openDB(dbPath: string): Database.Database {
+    const db = new Database(dbPath);
+    db.pragma("journal_mode = WAL");
+    db.loadExtension(getLoadablePath());
+    return db;
+}
 
-db.exec(`
+export function createSchema(db: Database.Database): void {
+    db.exec(`
     CREATE TABLE IF NOT EXISTS commits (
     hash TEXT PRIMARY KEY,
     message TEXT NOT NULL,
     author TEXT NOT NULL,
     timestamp INTEGER NOT NULL,
     files TEXT NOT NULL,
-    diff_summary TEXT,
-    embedding BLOB
+    diff_summary TEXT
     );
 
     CREATE TABLE IF NOT EXISTS pull_requests (
@@ -42,14 +48,23 @@ db.exec(`
     value TEXT
     );
 
-    CREATE VIRTUAL TABLE IF NOT EXISTS commit_vectors USING vec0(
-    embedding float[1536]
-    );
-
-    CREATE VIRTUAL TABLE IF NOT EXISTS pr_vectors USING vec0(
-    embedding float[1536]
-    );
-
     CREATE INDEX IF NOT EXISTS idx_file_graph_path ON file_graph(file_path);
     CREATE INDEX IF NOT EXISTS idx_commits_timestamp ON commits(timestamp);
     `);
+
+    db.exec(`
+          CREATE VIRTUAL TABLE IF NOT EXISTS commit_vectors USING vec0(
+    embedding float[384]
+    );
+
+    CREATE VIRTUAL TABLE IF NOT EXISTS pr_vectors USING vec0(
+    embedding float[384]
+    );
+    `);
+}
+
+export function initDB(dbPath: string): Database.Database {
+    const db = openDB(dbPath);
+    createSchema(db);
+    return db;
+}
