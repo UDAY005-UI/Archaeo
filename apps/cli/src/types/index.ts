@@ -47,7 +47,7 @@ export interface PullRequestRow {
 export interface FileGraphEntry {
     file_path: string;
     entity_type: "commit" | "pr";
-    entity_id: string;
+    entity_id: string | number;
     timestamp: number;
 }
 
