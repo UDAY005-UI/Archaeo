@@ -173,3 +173,10 @@ export interface IndexStats {
     dbSizeBytes: number;
     repoRemoteUrl?: string;
 }
+
+export interface TimelineEntry {
+    timestamp: number; // unix epoch
+    author: string;
+    message: string;
+    hash: string;
+}
