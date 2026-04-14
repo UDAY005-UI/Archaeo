@@ -42,3 +42,7 @@ export function saveGithubToken(token: string): void {
         githubToken: token,
     });
 }
+
+export function validateGithubToken(token: string): boolean {
+    return token.startsWith("ghp_") && token.length > 20;
+}
