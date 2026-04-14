@@ -29,22 +29,8 @@ export function buildCommitEmbeddingText(commit: Commit): string {
 }
 
 export async function generateCommitVector(commit: Commit): Promise<number[]> {
-    try {
-        const embeddedText = buildCommitEmbeddingText(commit);
-
-        const model = await loadModel();
-        const output = await model(embeddedText, {
-            pooling: "mean",
-            normalize: true,
-        });
-
-        const vector = Array.from(output.data);
-
-        return vector;
-    } catch (err) {
-        console.error("Failed to generate commit vector:", err);
-        throw err;
-    }
+    const text = buildCommitEmbeddingText(commit);
+    return embed(text);
 }
 
 export function buildPrEmbeddingText(pr: PullRequest): string {
@@ -58,39 +44,27 @@ export function buildPrEmbeddingText(pr: PullRequest): string {
 }
 
 export async function generatePrVector(pr: PullRequest): Promise<number[]> {
-    try {
-        const embeddedText = buildPrEmbeddingText(pr);
-
-        const model = await loadModel();
-        const output = await model(embeddedText, {
-            pooling: "mean",
-            normalize: true,
-        });
-
-        const vector = Array.from(output.data);
-
-        return vector;
-    } catch (err) {
-        console.error("Failed to generate pull request vector:", err);
-        throw err;
-    }
+    const text = buildPrEmbeddingText(pr);
+    return embed(text);
 }
 
 export async function generateQuestionVector(
     question: string
 ): Promise<number[]> {
-    try {
-        const model = await loadModel();
-        const output = await model(question, {
-            pooling: "mean",
-            normalize: true,
-        });
+    return embed(question);
+}
 
-        const vector = Array.from(output.data);
+export function estimateTime(commitCount: number): number {
+    return commitCount * 100;
+}
 
-        return vector;
-    } catch (err) {
-        console.error("Failed to generate pull request vector:", err);
-        throw err;
+export async function embedBatch(texts: string[]): Promise<number[][]> {
+    const results: number[][] = [];
+
+    for (const text of texts) {
+        results.push(await embed(text));
+        await new Promise((resolve) => setTimeout(resolve, 50));
     }
+
+    return results;
 }
