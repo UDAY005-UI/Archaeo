@@ -38,3 +38,5 @@ yarn-error.log*
 *.pem
 .yarn/install-state.gz
 packages/typescript-config/tsconfig.tsbuildinfo
+
+yarn.lock
