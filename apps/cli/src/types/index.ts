@@ -45,6 +45,8 @@ export interface PullRequestRow {
 }
 
 export interface FileGraphEntry {
+    author: string;
+    message: string;
     file_path: string;
     entity_type: "commit" | "pr";
     entity_id: string | number;
@@ -172,11 +174,4 @@ export interface IndexStats {
     lastIndexed: string;
     dbSizeBytes: number;
     repoRemoteUrl?: string;
-}
-
-export interface TimelineEntry {
-    timestamp: number; // unix epoch
-    author: string;
-    message: string;
-    hash: string;
 }
