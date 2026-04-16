@@ -1,6 +1,6 @@
 import chalk from "chalk";
 import boxen from "boxen";
-import { TimelineEntry, IndexStats } from "../types";
+import { IndexStats, FileGraphEntry } from "../types";
 
 export function success(msg: string): void {
     console.log(chalk.green(msg));
@@ -50,13 +50,16 @@ export function printConflict(message: string): void {
     console.log(output);
 }
 
-export function printTimeline(entries: TimelineEntry[]): void {
+export function printTimeline(entries: FileGraphEntry[]): void {
     entries.forEach((entry) => {
         const date = new Date(entry.timestamp * 1000).toLocaleDateString();
-        console.log(chalk.dim(`── ${date}  @${entry.author}`));
+
         console.log(
-            `   ${entry.message} ${chalk.dim(`(${entry.hash.slice(0, 7)})`)}`
+            chalk.dim(`── ${date}  @${entry.author}  [${entry.entity_type}]`)
         );
+
+        console.log(`   ${entry.message} (${String(entry.entity_id)})`);
+
         console.log();
     });
 }
