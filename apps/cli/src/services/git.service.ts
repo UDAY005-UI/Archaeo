@@ -27,7 +27,10 @@ export async function getCommitDiff(hash: string): Promise<string[]> {
     }
 }
 
-export async function getCurrentDiff(): Promise<object> {
+export async function getCurrentDiff(): Promise<{
+    unstaged: string;
+    staged: string;
+}> {
     const unstaged = await git.diff();
     const staged = await git.diff(["--cached"]);
 
