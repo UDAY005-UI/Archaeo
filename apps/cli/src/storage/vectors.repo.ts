@@ -21,7 +21,7 @@ export function saveCommitVector(
 
         db.prepare(
             `
-            INSERT OR REPLACE INTO commits_vector (rowid, embedding)
+            INSERT OR REPLACE INTO commit_vector (rowid, embedding)
             VALUES (?, ?)
             `
         ).run(row.rowid, buffer);
