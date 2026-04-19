@@ -9,13 +9,17 @@ export async function getAllCommits(since?: number): Promise<Commit[]> {
         : [];
     const result = await git.log(args);
 
-    return result.all.map((c) => ({
-        hash: c.hash,
-        message: c.message,
-        author: c.author_name,
-        timestamp: new Date(c.date).getTime(),
-        files: [],
-    }));
+    const commits = await Promise.all(
+        result.all.map(async (c) => ({
+            hash: c.hash,
+            message: c.message,
+            author: c.author_name,
+            timestamp: new Date(c.date).getTime(),
+            files: await getCommitDiff(c.hash), // ← fetch real files
+        }))
+    );
+
+    return commits;
 }
 
 export async function getCommitDiff(hash: string): Promise<string[]> {
@@ -56,9 +60,7 @@ export async function getFileCommits(filePath: string): Promise<Commit[]> {
 
 export async function getRemoteUrl(): Promise<string | null> {
     const url = await git.remote(["get-url", "origin"]);
-
-    if (!url) return null;
-    return url;
+    return url?.trim() ?? null; // add .trim()
 }
 
 export async function getHeadHash(): Promise<string | null> {
