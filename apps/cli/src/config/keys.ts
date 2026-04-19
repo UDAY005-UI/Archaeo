@@ -1,13 +1,13 @@
 import { readConfig, writeConfig } from "./global";
 
 export function getApiKey(): string | null {
-    return process.env.ANTHROPIC_API_KEY ?? readConfig()?.apiKey ?? null;
+    return process.env.XAI_API_KEY ?? readConfig()?.apiKey ?? null;
 }
 
 export function saveApiKey(key: string): void {
     const existing = readConfig() ?? {
         apiKey: "",
-        defaultModel: "claude-sonnet-4-20250514",
+        defaultModel: "grok-3-mini",
         embeddingModel: "all-MiniLM-L6-v2",
         maxContextTokens: 80000,
         createdAt: new Date().toISOString(),
@@ -20,7 +20,7 @@ export function saveApiKey(key: string): void {
 }
 
 export function validateKey(key: string): boolean {
-    return key.startsWith("sk-ant-") && key.length > 20;
+    return key.startsWith("xai-") && key.length > 20;
 }
 
 export function getGithubToken(): string | null {
@@ -31,7 +31,7 @@ export function saveGithubToken(token: string): void {
     const existing = readConfig() ?? {
         apiKey: "",
         githubToken: "",
-        defaultModel: "claude-sonnet-4-20250514",
+        defaultModel: "grok-3-mini",
         embeddingModel: "all-MiniLM-L6-v2",
         maxContextTokens: 80000,
         createdAt: new Date().toISOString(),

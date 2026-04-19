@@ -1,8 +1,7 @@
-import Anthropic from "@anthropic-ai/sdk";
-import { getApiKey } from "../config/keys";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { ClaudeAnswer, RetrievalContext, SearchResult } from "../types";
 
-const client = new Anthropic({ apiKey: getApiKey() ?? undefined });
+const client = new GoogleGenerativeAI(process.env.GEMINI_API_KEY ?? "");
 
 export function buildSystemPrompt(): string {
     return `You are a codebase historian. You have been given a curated set of git commits and PR descriptions relevant to a developer's question.
@@ -65,7 +64,6 @@ export function parseAnswer(raw: string): ClaudeAnswer {
     }
 
     const prMatches = raw.matchAll(/PR #(\d+)/g);
-
     for (const match of prMatches) {
         if (match[1]) {
             sources.push({ type: "pr", id: match[1], description: "" });
@@ -79,18 +77,12 @@ export async function synthesise(
     context: RetrievalContext
 ): Promise<ClaudeAnswer> {
     try {
-        const response = await client.messages.create({
-            model: "claude-sonnet-4-20250514",
-            max_tokens: 1000,
-            system: buildSystemPrompt(),
-            messages: [{ role: "user", content: buildUserMessage(context) }],
+        const model = client.getGenerativeModel({
+            model: "gemini-2.5-flash-lite",
         });
-
-        const raw = response.content
-            .filter((block) => block.type === "text")
-            .map((block) => block.text)
-            .join("\n");
-
+        const prompt = `${buildSystemPrompt()}\n\n${buildUserMessage(context)}`;
+        const result = await model.generateContent(prompt);
+        const raw = result.response.text();
         return parseAnswer(raw);
     } catch (err) {
         console.error("Failed to synthesise answer:", err);
