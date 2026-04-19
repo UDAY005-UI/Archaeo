@@ -4,14 +4,11 @@ import { ClaudeAnswer, RetrievalContext, SearchResult } from "../types";
 const client = new GoogleGenerativeAI(process.env.GEMINI_API_KEY ?? "");
 
 export function buildSystemPrompt(): string {
-    return `You are a codebase historian. You have been given a curated set of git commits and PR descriptions relevant to a developer's question.
+    return `You are a codebase historian. You have been given a set of git commits relevant to a developer's question.
 
-Rules:
-1. Answer ONLY from the provided history. Do not invent or infer beyond it.
-2. Cite every claim with a commit hash or PR number.
-3. If the history doesn't contain enough information, say so explicitly.
-4. Be concise. Developers want the answer, not a story.
-5. Format: Answer paragraph first, then Sources list.`;
+Summarise what happened and explain the decisions and reasoning behind the changes. 
+Do NOT list commit hashes — those are already shown to the user separately.
+Focus on explaining the WHY and WHAT in plain English.`;
 }
 
 function formatResult(result: SearchResult): string {
