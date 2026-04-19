@@ -4,9 +4,10 @@ import { search } from "../services/retrieval.service";
 import { synthesise } from "../services/claude.service";
 import { count } from "../storage/commits.repo";
 import { getApiKey } from "../config/keys";
-import { printAnswer, error, info } from "../utils/display";
+import { error, info, printAnswer, printTimeline } from "../utils/display";
 import { AskOptions } from "../types";
 import { exitWithError } from "../utils/errors";
+import chalk from "chalk";
 
 export function validateQuestion(question: string): boolean {
     if (!question || question.trim().length === 0) {
@@ -69,11 +70,18 @@ export async function runAsk(
             return;
         }
 
-        const sources = answer.sources.map((s) =>
-            s.type === "commit" ? `Commit ${s.id}` : `PR #${s.id}`
-        );
+        const timeline = context.results
+            .filter((r) => r.type === "commit")
+            .slice(0, 10)
+            .map((r) => ({
+                hash: r.hash ?? "",
+                message: r.message ?? "",
+                author: r.author ?? "",
+                timestamp: r.timestamp,
+                type: "commit" as const,
+            }));
 
-        printAnswer(question, answer.answer, sources);
+        printAnswer(question, answer.answer, timeline);
     } catch (err) {
         error(`Failed to answer question: ${err}`);
         throw err;

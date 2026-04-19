@@ -25,18 +25,25 @@ export function info(msg: string): void {
 export function printAnswer(
     question: string,
     answer: string,
-    sources: string[]
+    timeline: TimelineEntry[]
 ): void {
-    const output = sources.map((source) =>
-        boxen(source, {
-            padding: 1,
-            margin: 1,
-            borderStyle: "round",
-        })
-    );
-    console.log(chalk.dim(question));
-    console.log(answer);
-    output.forEach((box) => console.log(box));
+    const width = process.stdout.columns || 80;
+
+    console.log(chalk.bold("\nQuestion: ") + chalk.dim(question));
+    printTimeline(timeline);
+    console.log(chalk.bold("\nSummary:"));
+
+    const words = answer.split(" ");
+    let line = "";
+    for (const word of words) {
+        if ((line + word).length > width - 2) {
+            console.log(line);
+            line = word + " ";
+        } else {
+            line += word + " ";
+        }
+    }
+    if (line) console.log(line);
 }
 
 export function printConflict(message: string): void {
