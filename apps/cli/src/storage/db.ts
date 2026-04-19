@@ -11,7 +11,8 @@ export function openDB(dbPath: string): Database.Database {
 export function createSchema(db: Database.Database): void {
     db.exec(`
     CREATE TABLE IF NOT EXISTS commits (
-    hash TEXT PRIMARY KEY,
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    hash TEXT UNIQUE NOT NULL,
     message TEXT NOT NULL,
     author TEXT NOT NULL,
     timestamp INTEGER NOT NULL,
@@ -57,9 +58,19 @@ export function createSchema(db: Database.Database): void {
     embedding float[384]
     );
 
+    CREATE TABLE IF NOT EXISTS commit_vector_map (
+  rowid INTEGER PRIMARY KEY,
+  hash TEXT NOT NULL
+);
+
     CREATE VIRTUAL TABLE IF NOT EXISTS pr_vectors USING vec0(
     embedding float[384]
     );
+
+    CREATE TABLE IF NOT EXISTS pr_vector_map (
+  rowid INTEGER PRIMARY KEY,
+  number INTEGER NOT NULL
+);
     `);
 }
 

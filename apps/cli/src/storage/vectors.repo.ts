@@ -7,24 +7,15 @@ export function saveCommitVector(
     vector: number[]
 ): void {
     try {
-        const row = db
-            .prepare(
-                `
-        SELECT rowid FROM commits WHERE hash = ?
-        `
-            )
-            .get(commitHash) as { rowid: number } | undefined;
-
-        if (!row) throw new Error(`Commit ${commitHash} not found`);
-
         const buffer = Buffer.from(new Float32Array(vector).buffer);
+        const result = db
+            .prepare(`INSERT INTO commit_vectors (embedding) VALUES (?)`)
+            .run(buffer);
 
+        // save the mapping
         db.prepare(
-            `
-            INSERT OR REPLACE INTO commit_vector (rowid, embedding)
-            VALUES (?, ?)
-            `
-        ).run(row.rowid, buffer);
+            `INSERT INTO commit_vector_map (rowid, hash) VALUES (?, ?)`
+        ).run(result.lastInsertRowid, commitHash);
     } catch (err) {
         console.error("Failed to save commit vector:", err);
         throw err;
@@ -37,24 +28,14 @@ export function savePrVector(
     vector: number[]
 ): void {
     try {
-        const row = db
-            .prepare(
-                `
-        SELECT rowid FROM pull_requests WHERE number = ?
-        `
-            )
-            .get(number) as { rowid: number } | undefined;
-
-        if (!row) throw new Error(`Pull request ${number} not found`);
-
         const buffer = Buffer.from(new Float32Array(vector).buffer);
+        const result = db
+            .prepare(`INSERT INTO pr_vectors (embedding) VALUES (?)`)
+            .run(buffer);
 
         db.prepare(
-            `
-            INSERT OR REPLACE INTO prs_vector (rowid, embedding)
-            VALUES (?, ?)
-            `
-        ).run(row.rowid, buffer);
+            `INSERT INTO pr_vector_map (rowid, number) VALUES (?, ?)`
+        ).run(result.lastInsertRowid, number);
     } catch (err) {
         console.error("Failed to save pr vector:", err);
         throw err;
@@ -72,11 +53,12 @@ export function searchCommits(
         const rows = db
             .prepare(
                 `
-      SELECT c.*, vec_distance_cosine(v.embedding, ?) as similarity
-      FROM commit_vectors v
-      JOIN commits c ON v.rowid = c.rowid
-      ORDER BY similarity
-      LIMIT ?
+SELECT c.*, vec_distance_cosine(v.embedding, ?) as similarity
+FROM commit_vectors v
+JOIN commit_vector_map m ON v.rowid = m.rowid
+JOIN commits c ON m.hash = c.hash
+ORDER BY similarity
+LIMIT ?
     `
             )
             .all(buffer, limit) as any[];
@@ -107,11 +89,12 @@ export function searchPRs(
         const rows = db
             .prepare(
                 `
-      SELECT p.*, vec_distance_cosine(v.embedding, ?) as similarity
-      FROM pr_vectors v
-      JOIN pull_requests p ON v.rowid = p.rowid
-      ORDER BY similarity
-      LIMIT ?
+SELECT p.*, vec_distance_cosine(v.embedding, ?) as similarity
+FROM pr_vectors v
+JOIN pr_vector_map m ON v.rowid = m.rowid
+JOIN pull_requests p ON m.number = p.number
+ORDER BY similarity
+LIMIT ?
     `
             )
             .all(buffer, limit) as any[];
