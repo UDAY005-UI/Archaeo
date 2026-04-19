@@ -175,3 +175,11 @@ export interface IndexStats {
     dbSizeBytes: number;
     repoRemoteUrl?: string;
 }
+
+export interface TimelineEntry {
+    hash: string;
+    message: string;
+    author: string;
+    timestamp: number;
+    type: "commit" | "pr";
+}
