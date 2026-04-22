@@ -48,7 +48,6 @@ export async function runConfig(options: {
         return;
     }
 
-    // no flags — show current config + interactive update
     const config = readConfig();
 
     info("Current config:");

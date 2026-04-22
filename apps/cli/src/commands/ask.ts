@@ -1,13 +1,12 @@
 import path from "path";
 import { initDB } from "../storage/db";
 import { search } from "../services/retrieval.service";
-import { synthesise } from "../services/claude.service";
+import { askCommandSynthesise } from "../services/claude.service";
 import { count } from "../storage/commits.repo";
 import { getApiKey } from "../config/keys";
-import { error, info, printAnswer, printTimeline } from "../utils/display";
+import { error, info, printAnswer } from "../utils/display";
 import { AskOptions } from "../types";
 import { exitWithError } from "../utils/errors";
-import chalk from "chalk";
 
 export function validateQuestion(question: string): boolean {
     if (!question || question.trim().length === 0) {
@@ -63,7 +62,7 @@ export async function runAsk(
 
         info(`Found ${context.results.length} relevant commits/PRs`);
 
-        const answer = await synthesise(context);
+        const answer = await askCommandSynthesise(context);
 
         if (options.json) {
             console.log(JSON.stringify(answer, null, 2));

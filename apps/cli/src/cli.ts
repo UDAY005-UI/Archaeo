@@ -5,6 +5,7 @@ import { runCheck } from "./commands/check";
 import { runUpdate } from "./commands/update";
 import { runStatus } from "./commands/status";
 import { runConfig } from "./commands/config";
+import { runFix } from "./commands/fix";
 import {
     checkNodeVersion,
     checkIsRepo,
@@ -16,6 +17,7 @@ import {
     printSummary,
 } from "./commands/init";
 import { saveApiKey, saveGithubToken } from "./config/keys";
+import { runIssue } from "./commands/issue";
 
 const program = new Command();
 
@@ -96,6 +98,22 @@ program
     .option("--github <token>", "set GitHub token")
     .action(async (options) => {
         await runConfig(options);
+    });
+
+program
+    .command("fix")
+    .description("Analyze the latest runtime error and suggest a fix")
+    .option("--json", "output as JSON")
+    .action(async (options) => {
+        await runFix(options);
+    });
+
+program
+    .command("issue")
+    .description("Analyze any open issue on github")
+    .option("--json", "output as JSON")
+    .action(async (issueNumber) => {
+        await runIssue(issueNumber);
     });
 
 export { program };

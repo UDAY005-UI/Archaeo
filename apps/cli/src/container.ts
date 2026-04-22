@@ -1,7 +1,11 @@
 import Database from "better-sqlite3";
 import { initDB } from "./storage/db";
 import { search } from "./services/retrieval.service";
-import { synthesise } from "./services/claude.service";
+import {
+    askCommandSynthesise,
+    fixCommandSynthesise,
+    issueCommandSynthesise,
+} from "./services/claude.service";
 import { detectConflicts } from "./services/conflict.service";
 import * as gitService from "./services/git.service";
 import * as githubService from "./services/github.service";
@@ -13,7 +17,9 @@ export type Container = {
     detect: () => ReturnType<typeof detectConflicts>;
     git: typeof gitService;
     github: typeof githubService;
-    synthesise: typeof synthesise;
+    synthesiseAsk: typeof askCommandSynthesise;
+    synthesiseFix: typeof fixCommandSynthesise;
+    synthesiseIssue: typeof issueCommandSynthesise;
 };
 
 export function buildContainer(): Container {
@@ -25,6 +31,9 @@ export function buildContainer(): Container {
         detect: () => detectConflicts(db),
         git: gitService,
         github: githubService,
-        synthesise,
+
+        synthesiseAsk: askCommandSynthesise,
+        synthesiseFix: fixCommandSynthesise,
+        synthesiseIssue: issueCommandSynthesise,
     };
 }
