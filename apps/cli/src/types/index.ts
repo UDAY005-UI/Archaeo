@@ -183,3 +183,58 @@ export interface TimelineEntry {
     timestamp: number;
     type: "commit" | "pr";
 }
+
+export interface ArchaeoError {
+    message: string;
+    type?: string;
+
+    file: string;
+    line: number;
+    column?: number;
+
+    stack?: string[];
+}
+
+export interface ErrorContext {
+    error: string;
+    type?: string;
+    file: string;
+    line: number;
+    code: string;
+}
+
+export interface ErrorAnswer {
+    cause: string;
+    fix: string;
+    confidence: "high" | "medium" | "low";
+}
+
+export interface FixContext {
+    error: string;
+    file: string;
+    line: number;
+    code: string;
+    type?: string;
+}
+
+export interface FixAnswer {
+    cause: string;
+    fix: string;
+    confidence: "high" | "medium" | "low";
+}
+
+export interface Issue {
+    number: number;
+    title: string;
+    body: string;
+    labels: string[];
+    comments: string[];
+}
+
+export interface IssueRow {
+    number: number;
+    title: string;
+    body: string;
+    labels: string;
+    comments: string;
+}

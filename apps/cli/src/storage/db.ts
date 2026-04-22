@@ -49,6 +49,14 @@ export function createSchema(db: Database.Database): void {
     value TEXT
     );
 
+    CREATE TABLE IF NOT EXISTS issues (
+    number INTEGER PRIMARY KEY,
+    title TEXT NOT NULL,
+    body TEXT,
+    labels TEXT,
+    comments TEXT
+    );
+
     CREATE INDEX IF NOT EXISTS idx_file_graph_path ON file_graph(file_path);
     CREATE INDEX IF NOT EXISTS idx_commits_timestamp ON commits(timestamp);
     `);
