@@ -1,11 +1,17 @@
 import path from "path";
+import fs from "fs";
 import simpleGit from "simple-git";
 import { initDB } from "../storage/db";
 import { saveMany as saveCommits, setCursor } from "../storage/commits.repo";
 import { saveMany as savePRs, count as prCount } from "../storage/prs.repo";
+import { saveMany as saveIssues } from "../storage/issues.repo";
 import { saveCommitVector, savePrVector } from "../storage/vectors.repo";
 import { saveFileRelation, incrementCoChanges } from "../storage/graph.repo";
-import { getAllCommits, getRemoteUrl } from "../services/git.service";
+import {
+    getAllCommits,
+    getRemoteUrl,
+    getOpenIssues,
+} from "../services/git.service";
 import {
     fetchAllPRs,
     linkPRsToCommits,
@@ -123,7 +129,19 @@ export function createFolder(): void {
 }
 
 export async function runFullIndexPipeline(): Promise<void> {
-    const db = initDB(path.join(process.cwd(), ".archaeo", "index.db"));
+    const archaeDir = path.join(process.cwd(), ".archaeo");
+
+    const db = initDB(path.join(archaeDir, "index.db"));
+
+    const errorLogPath = path.join(archaeDir, "error.log");
+
+    fs.mkdirSync(archaeDir, { recursive: true });
+
+    if (!fs.existsSync(errorLogPath)) {
+        fs.writeFileSync(errorLogPath, "");
+    }
+
+    const token = await promptGithubToken();
 
     const spinner = createSpinner("Scanning git history...");
     const allCommits = await getAllCommits();
@@ -166,6 +184,13 @@ export async function runFullIndexPipeline(): Promise<void> {
         updateBar(bar, i + 1);
     }
     stopBar(bar);
+
+    const Issuespinner = createSpinner("Scanning git history...");
+    const allOpenIssues = await getOpenIssues(token);
+    Issuespinner.stop();
+    info(`Found ${allOpenIssues.length} open issues`);
+
+    saveIssues(db, allOpenIssues);
 
     const remoteUrl = await getRemoteUrl();
     if (remoteUrl) {
