@@ -1,5 +1,5 @@
 import simpleGit from "simple-git";
-import { Commit } from "../types";
+import { Commit, Issue } from "../types";
 
 const git = simpleGit();
 
@@ -60,7 +60,7 @@ export async function getFileCommits(filePath: string): Promise<Commit[]> {
 
 export async function getRemoteUrl(): Promise<string | null> {
     const url = await git.remote(["get-url", "origin"]);
-    return url?.trim() ?? null; // add .trim()
+    return url?.trim() ?? null;
 }
 
 export async function getHeadHash(): Promise<string | null> {
@@ -71,4 +71,61 @@ export async function getHeadHash(): Promise<string | null> {
     if (!latestHash) return null;
 
     return latestHash;
+}
+
+function parseGitHubRemoteUrl(remoteUrl: string): {
+    owner: string;
+    repo: string;
+} {
+    const match = remoteUrl.match(/github\.com[:/](.+?)\/(.+?)(\.git)?$/);
+    if (!match) throw new Error("Not a valid GitHub remote URL");
+
+    if (match[1] === undefined || match[2] === undefined)
+        throw new Error("Not a valid GitHub remote URL");
+    return { owner: match[1], repo: match[2] };
+}
+
+export async function getOpenIssues(token?: string | null): Promise<Issue[]> {
+    const remoteUrl = await getRemoteUrl();
+
+    if (!remoteUrl || remoteUrl === null) return [];
+
+    const { owner, repo } = parseGitHubRemoteUrl(remoteUrl);
+    const headers: Record<string, string> = {
+        Accept: "application/vnd.github+json",
+    };
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+
+    const res = await fetch(
+        `https://api.github.com/repos/${owner}/${repo}/issues?state=open&per_page=100`,
+        { headers }
+    );
+
+    if (!res.ok) throw new Error(`GitHub API error: ${res.status}`);
+    const issues = await res.json();
+    return issues.filter((i: any) => !i.pull_request) as Issue[];
+}
+
+export async function getFileTree(token?: string | null): Promise<string[]> {
+    const remoteUrl = await getRemoteUrl();
+
+    if (!remoteUrl || remoteUrl === null) return [];
+
+    const { owner, repo } = parseGitHubRemoteUrl(remoteUrl);
+    const headers: Record<string, string> = {
+        Accept: "application/vnd.github+json",
+    };
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+
+    const res = await fetch(
+        `https://api.github.com/repos/${owner}/${repo}/git/trees/HEAD?recursive=1`,
+        { headers }
+    );
+
+    if (!res.ok) throw new Error(`GitHub API error: ${res.status}`);
+    const data = await res.json();
+
+    return data.tree
+        .filter((f: any) => f.type === "blob")
+        .map((f: any) => f.path);
 }
