@@ -94,8 +94,16 @@ program
 program
     .command("config")
     .description("View and edit configuration")
-    .option("--key <key>", "set Anthropic API key")
+    .option("--key <key>", "set API key")
     .option("--github <token>", "set GitHub token")
+    .option(
+        "--provider <provider>",
+        "set provider: gemini | openai | anthropic"
+    )
+    .option("--model <model>", "set model name")
+    .option("--switch <mode>", "switch mode: cloud | local")
+    .option("--local-url <url>", "set local model server URL")
+    .option("--local-model <model>", "set local model name")
     .action(async (options) => {
         await runConfig(options);
     });
