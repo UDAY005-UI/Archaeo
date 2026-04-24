@@ -1,6 +1,6 @@
 import path from "path";
 import { initDB } from "../storage/db";
-import { issueCommandSynthesise } from "../services/claude.service";
+import { issueCommandSynthesise } from "../services/ai.service";
 import { getApiKey } from "../config/keys";
 import { error, info } from "../utils/display";
 import { exitWithError } from "../utils/errors";
@@ -9,7 +9,7 @@ import { count } from "../storage/issues.repo";
 import { Issue } from "../types";
 import { getGithubToken } from "../config/keys";
 import { getFileTree } from "../services/git.service";
-import { getRelevantFiles } from "../services/claude.service";
+import { getRelevantFiles } from "../services/ai.service";
 
 export function buildIssueContext(issue: Issue, files: string[]): string {
     return `Issue #${issue.number}: ${issue.title}

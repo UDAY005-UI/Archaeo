@@ -1,7 +1,7 @@
 import path from "path";
 import { initDB } from "../storage/db";
 import { search } from "../services/retrieval.service";
-import { askCommandSynthesise } from "../services/claude.service";
+import { askCommandSynthesise } from "../services/ai.service";
 import { count } from "../storage/commits.repo";
 import { getApiKey } from "../config/keys";
 import { error, info, printAnswer } from "../utils/display";

@@ -14,7 +14,7 @@ async function callAI(prompt: string, system: string): Promise<string> {
             );
         }
         const client = new OpenAI({
-            baseURL: config.localUrl,
+            baseURL: `${config.localUrl}/v1`,
             apiKey: "local",
         });
         const response = await client.chat.completions.create({

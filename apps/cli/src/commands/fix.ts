@@ -3,7 +3,7 @@ import { getApiKey } from "../config/keys";
 import { error, info } from "../utils/display";
 import { exitWithError } from "../utils/errors";
 import { readError, extractFunctionContext } from "../services/error.service";
-import { fixCommandSynthesise } from "../services/claude.service";
+import { fixCommandSynthesise } from "../services/ai.service";
 import { FixContext } from "../types";
 
 export function buildFixContext(

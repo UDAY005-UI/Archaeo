@@ -5,7 +5,7 @@ import {
     askCommandSynthesise,
     fixCommandSynthesise,
     issueCommandSynthesise,
-} from "./services/claude.service";
+} from "./services/ai.service";
 import { detectConflicts } from "./services/conflict.service";
 import * as gitService from "./services/git.service";
 import * as githubService from "./services/github.service";
