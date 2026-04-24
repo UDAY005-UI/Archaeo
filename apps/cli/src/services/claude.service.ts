@@ -1,13 +1,76 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import {
-    ClaudeAnswer,
-    FixContext,
-    Issue,
-    RetrievalContext,
-    SearchResult,
-} from "../types";
+import OpenAI from "openai";
+import Anthropic from "@anthropic-ai/sdk";
+import { ClaudeAnswer, Issue, RetrievalContext, SearchResult } from "../types";
+import { readConfig } from "../config/global";
 
-const client = new GoogleGenerativeAI(process.env.GEMINI_API_KEY ?? "");
+async function callAI(prompt: string, system: string): Promise<string> {
+    const config = readConfig();
+
+    if (config?.isLocal) {
+        if (!config.localUrl || !config.localModel) {
+            throw new Error(
+                "Local URL and model not set. Run: archaeo config --local-url <url> --local-model <model>"
+            );
+        }
+        const client = new OpenAI({
+            baseURL: config.localUrl,
+            apiKey: "local",
+        });
+        const response = await client.chat.completions.create({
+            model: config.localModel,
+            messages: [
+                { role: "system", content: system },
+                { role: "user", content: prompt },
+            ],
+        });
+        return response.choices[0]?.message?.content ?? "";
+    }
+
+    const provider = config?.provider ?? "gemini";
+
+    if (provider === "gemini") {
+        const client = new GoogleGenerativeAI(
+            config?.apiKey ?? process.env.GEMINI_API_KEY ?? ""
+        );
+        const model = client.getGenerativeModel({
+            model: config?.model ?? "gemini-2.5-flash-lite",
+        });
+        const result = await model.generateContent(`${system}\n\n${prompt}`);
+        return result.response.text();
+    }
+
+    if (provider === "openai") {
+        const client = new OpenAI({
+            apiKey: config?.apiKey ?? process.env.OPENAI_API_KEY,
+        });
+        const response = await client.chat.completions.create({
+            model: config?.model ?? "gpt-4o-mini",
+            messages: [
+                { role: "system", content: system },
+                { role: "user", content: prompt },
+            ],
+        });
+        return response.choices[0]?.message?.content ?? "";
+    }
+
+    if (provider === "anthropic") {
+        const client = new Anthropic({
+            apiKey: config?.apiKey ?? process.env.ANTHROPIC_API_KEY,
+        });
+        const response = await client.messages.create({
+            model: config?.model ?? "claude-3-5-haiku-20241022",
+            max_tokens: 1000,
+            system,
+            messages: [{ role: "user", content: prompt }],
+        });
+        return (response.content[0] as any).text ?? "";
+    }
+
+    throw new Error(
+        `Unknown provider: ${provider}. Run: archaeo config --provider gemini|openai|anthropic`
+    );
+}
 
 export function buildIssueCommandSystemPrompt(): string {
     return `You are an expert software engineer doing bug triage on a GitHub issue.
@@ -152,35 +215,30 @@ export function parseAnswer(raw: string): ClaudeAnswer {
 export async function askCommandSynthesise(
     context: RetrievalContext
 ): Promise<ClaudeAnswer> {
-    const model = client.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
-    const prompt = `${buildAskCommandSystemPrompt()}\n\n${buildAskCommandUserMessage(context)}`;
-    const result = await model.generateContent(prompt);
-    const raw = result.response.text();
-
-    parseAnswer(raw);
-
-    return { answer: raw, sources: [], confidence: "high" };
+    const raw = await callAI(
+        buildAskCommandUserMessage(context),
+        buildAskCommandSystemPrompt()
+    );
+    return parseAnswer(raw);
 }
 
 export async function fixCommandSynthesise(
     context: string
 ): Promise<ClaudeAnswer> {
-    const model = client.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
-    const prompt = `${buildAskCommandSystemPrompt()}\n\n${buildFixCommandUserMessage(context)}`;
-    const result = await model.generateContent(prompt);
-    const raw = result.response.text();
-
+    const raw = await callAI(
+        buildFixCommandUserMessage(context),
+        buildFixCommandSystemPrompt()
+    );
     return { answer: raw, sources: [], confidence: "high" };
 }
 
 export async function issueCommandSynthesise(
     context: string
 ): Promise<ClaudeAnswer> {
-    const model = client.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
-    const prompt = `${buildAskCommandSystemPrompt()}\n\n${buildIssueCommandUserMessage(context)}`;
-    const result = await model.generateContent(prompt);
-    const raw = result.response.text();
-
+    const raw = await callAI(
+        buildIssueCommandUserMessage(context),
+        buildIssueCommandSystemPrompt()
+    );
     return { answer: raw, sources: [], confidence: "high" };
 }
 
@@ -188,25 +246,20 @@ export async function getRelevantFiles(
     issue: Issue,
     tree: string[]
 ): Promise<string[]> {
-    const model = client.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
-    const prompt = `${buildFileRetrievalSystemPrompt()}\n\n${buildFileRetrievalUserMessage(issue, tree)}`;
-    const result = await model.generateContent(prompt);
-    const raw = result.response.text();
+    const raw = await callAI(
+        buildFileRetrievalUserMessage(issue, tree),
+        buildFileRetrievalSystemPrompt()
+    );
 
     try {
         const parsed = JSON.parse(raw);
-
-        if (!Array.isArray(parsed)) {
+        if (!Array.isArray(parsed))
             throw new Error("Model output is not an array");
-        }
-
         return parsed;
-    } catch (err) {
-        console.error("Failed to parse model output:", raw);
-
+    } catch {
         return raw
             .split("\n")
-            .map((line) => line.trim())
-            .filter((line) => line.length > 0);
+            .map((l) => l.trim())
+            .filter((l) => l.length > 0);
     }
 }
