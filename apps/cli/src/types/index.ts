@@ -88,10 +88,13 @@ export interface RetrievalContext {
 // ─── Config ──────────────────────────────────────────────────────
 
 export interface GlobalConfig {
+    provider: "gemini" | "openai" | "anthropic";
     apiKey: string;
+    model: string;
+    isLocal: boolean;
+    localUrl: string;
+    localModel: string;
     githubToken?: string;
-    defaultModel: string;
-    embeddingModel: string;
     maxContextTokens: number;
     createdAt: string;
 }
