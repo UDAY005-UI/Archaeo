@@ -6,8 +6,11 @@ import { GlobalConfig } from "../types";
 const DEFAULT_CONFIG: GlobalConfig = {
     apiKey: "",
     githubToken: "",
-    defaultModel: "claude-3-sonnet",
-    embeddingModel: "text-embedding-3-small",
+    provider: "gemini",
+    model: "gemini-2.5-flash-lite",
+    isLocal: false,
+    localUrl: "",
+    localModel: "",
     maxContextTokens: 4000,
     createdAt: new Date().toISOString(),
 };

@@ -1,26 +1,33 @@
 import { readConfig, writeConfig } from "./global";
 
 export function getApiKey(): string | null {
-    return process.env.XAI_API_KEY ?? readConfig()?.apiKey ?? null;
+    const config = readConfig();
+    if (config?.isLocal) return "local";
+    return (
+        config?.apiKey ??
+        process.env.GEMINI_API_KEY ??
+        process.env.OPENAI_API_KEY ??
+        process.env.ANTHROPIC_API_KEY ??
+        null
+    );
 }
 
 export function saveApiKey(key: string): void {
     const existing = readConfig() ?? {
+        provider: "gemini" as const,
         apiKey: "",
-        defaultModel: "grok-3-mini",
-        embeddingModel: "all-MiniLM-L6-v2",
+        model: "gemini-2.5-flash-lite",
+        isLocal: false,
+        localUrl: "",
+        localModel: "",
         maxContextTokens: 80000,
         createdAt: new Date().toISOString(),
     };
-
-    writeConfig({
-        ...existing,
-        apiKey: key,
-    });
+    writeConfig({ ...existing, apiKey: key });
 }
 
 export function validateKey(key: string): boolean {
-    return key.startsWith("xai-") && key.length > 20;
+    return key.length > 20;
 }
 
 export function getGithubToken(): string | null {
@@ -29,18 +36,16 @@ export function getGithubToken(): string | null {
 
 export function saveGithubToken(token: string): void {
     const existing = readConfig() ?? {
+        provider: "gemini" as const,
         apiKey: "",
-        githubToken: "",
-        defaultModel: "grok-3-mini",
-        embeddingModel: "all-MiniLM-L6-v2",
+        model: "gemini-2.5-flash-lite",
+        isLocal: false,
+        localUrl: "",
+        localModel: "",
         maxContextTokens: 80000,
         createdAt: new Date().toISOString(),
     };
-
-    writeConfig({
-        ...existing,
-        githubToken: token,
-    });
+    writeConfig({ ...existing, githubToken: token });
 }
 
 export function validateGithubToken(token: string): boolean {
