@@ -79,8 +79,8 @@ export interface SearchResult {
 
 export interface RetrievalContext {
     question: string;
-    questionType: QuestionType;
-    fileHints: string[];
+    keywords: string[];
+    files: string[];
     results: SearchResult[];
     totalTokens: number;
 }
