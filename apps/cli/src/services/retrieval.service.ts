@@ -3,34 +3,37 @@ import { searchCommits, searchPRs } from "../storage/vectors.repo";
 import { QuestionType, RetrievalContext, SearchResult } from "../types";
 import { generateQuestionVector } from "./embedder.service";
 import { estimateTokens } from "../utils/tokens";
+import { callAI, buildParseQuestionPrompt } from "./ai.service";
 
-export function parseQuestion(question: string): {
-    questionType: QuestionType;
-    fileHints: string[];
-} {
-    const lower = question.toLowerCase();
-    let questionType: QuestionType = "what"; // default
-    if (lower.startsWith("why")) questionType = "why";
-    if (lower.startsWith("when")) questionType = "when";
-    if (lower.startsWith("who")) questionType = "who";
-    if (lower.includes("history")) questionType = "history";
+export async function parseQuestion(
+    question: string,
+    fileTree: string[]
+): Promise<{ files: string[]; keywords: string[] }> {
+    const raw = await callAI(buildParseQuestionPrompt(question, fileTree), "");
 
-    const fileHints: string[] = [];
-    const tsFiles = question.match(/[\w-]+\.ts/g) ?? [];
-    const srcPaths = question.match(/src\/[\w/]+/g) ?? [];
-    fileHints.push(...tsFiles, ...srcPaths);
-
-    return { questionType, fileHints };
+    try {
+        const parsed = JSON.parse(raw);
+        return {
+            files: parsed.files ?? [],
+            keywords: parsed.keywords ?? [],
+        };
+    } catch {
+        return { files: [], keywords: [] };
+    }
 }
 
 export async function vectorSearch(
     db: Database.Database,
-    question: string
+    question: string,
+    fileTree: string[]
 ): Promise<SearchResult[]> {
-    const vector = await generateQuestionVector(question);
+    const vector = await generateQuestionVector(
+        question,
+        (await parseQuestion(question, fileTree)).files
+    );
 
-    const commits = searchCommits(db, vector, 50);
-    const prs = searchPRs(db, vector, 20);
+    const commits = searchCommits(db, vector, 20);
+    const prs = searchPRs(db, vector, 10);
 
     return [...commits, ...prs];
 }
@@ -53,41 +56,16 @@ export function trimToBudget(results: SearchResult[]): SearchResult[] {
     return selected;
 }
 
-export function rerank(
-    results: SearchResult[],
-    fileHints: string[],
-    questionType: QuestionType
-): SearchResult[] {
-    const scored = results.map((result) => {
-        let score = result.similarity;
-
-        const fileOverlap = fileHints.filter((f) => result.files.includes(f));
-        score += fileOverlap.length * 0.15;
-
-        const ageMonths =
-            (Date.now() - result.timestamp * 1000) / (30 * 24 * 3600 * 1000);
-        score += Math.max(0, 0.1 - ageMonths * 0.005);
-
-        if ((result.message?.length ?? 0) > 100) score += 0.08;
-
-        if (/^chore|^bump|^deps/i.test(result.message ?? "")) score -= 0.2;
-
-        return { ...result, score };
-    });
-
-    return scored.sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
-}
 export async function search(
     db: Database.Database,
-    question: string
+    question: string,
+    fileTree: string[]
 ): Promise<RetrievalContext> {
-    const { questionType, fileHints } = parseQuestion(question);
+    const parsedQuestion = await parseQuestion(question, fileTree);
 
-    const rawResults = await vectorSearch(db, question);
+    const rawResults = await vectorSearch(db, question, fileTree);
 
-    const ranked = rerank(rawResults, fileHints, questionType);
-
-    const trimmed = trimToBudget(ranked);
+    const trimmed = trimToBudget(rawResults);
 
     const totalTokens = trimmed.reduce((sum, r) => {
         const text = `${r.message ?? r.title} ${r.description ?? ""} ${r.files.join(" ")}`;
@@ -96,8 +74,8 @@ export async function search(
 
     return {
         question,
-        questionType,
-        fileHints,
+        keywords: parsedQuestion.keywords,
+        files: parsedQuestion.files,
         results: trimmed,
         totalTokens,
     };
