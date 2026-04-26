@@ -4,7 +4,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { ClaudeAnswer, Issue, RetrievalContext, SearchResult } from "../types";
 import { readConfig } from "../config/global";
 
-async function callAI(prompt: string, system: string): Promise<string> {
+export async function callAI(prompt: string, system: string): Promise<string> {
     const config = readConfig();
 
     if (config?.isLocal) {
@@ -16,6 +16,7 @@ async function callAI(prompt: string, system: string): Promise<string> {
         const client = new OpenAI({
             baseURL: `${config.localUrl}/v1`,
             apiKey: "local",
+            timeout: 120_000,
         });
         const response = await client.chat.completions.create({
             model: config.localModel,
@@ -72,6 +73,30 @@ async function callAI(prompt: string, system: string): Promise<string> {
     );
 }
 
+export function buildParseQuestionPrompt(
+    question: string,
+    fileTree: string[]
+): string {
+    return `You are a code repository analyst.
+You will be given a developer's question and a list of file paths from the repository.
+
+Return a JSON object with exactly this shape:
+{
+    "files": ["path/to/file.ts"],
+    "keywords": ["auth", "jwt"]
+}
+
+Rules:
+- files: most relevant file paths from the tree. Max 5. Empty array if none.
+- keywords: key domain terms from the question for commit matching. Max 5.
+- Return ONLY the JSON object. No explanation. No markdown. No backticks.
+
+Question: ${question}
+
+File tree:
+${fileTree.join("\n")}`;
+}
+
 export function buildIssueCommandSystemPrompt(): string {
     return `You are an expert software engineer doing bug triage on a GitHub issue.
 You will be given an issue title, description, comments, and relevant source files.
@@ -89,11 +114,15 @@ Rules:
 }
 
 export function buildAskCommandSystemPrompt(): string {
-    return `You are a codebase historian. You have been given a set of git commits relevant to a developer's question.
+    return `You are a codebase historian. Answer the developer's question directly using only the provided git history.
 
-Summarise what happened and explain the decisions and reasoning behind the changes. 
-Do NOT list commit hashes — those are already shown to the user separately.
-Focus on explaining the WHY and WHAT in plain English.`;
+Rules:
+- Answer as concisely as the question allows — simple questions get short answers, complex questions get detailed ones
+- No filler, no unnecessary background, no restating the question
+- Only include information directly relevant to what was asked
+- If the history doesn't contain enough information to answer, say so explicitly in one sentence
+- At the end, add a "Relevant Commits:" section in this format:
+- <hash> | <date> | <message>`;
 }
 
 export function buildFixCommandSystemPrompt(): string {
@@ -122,9 +151,16 @@ Example: ["src/auth/auth.service.ts", "src/auth/jwt.guard.ts"]`;
 }
 
 function formatResult(result: SearchResult): string {
+    const date = new Date(result.timestamp).toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+    });
+
     if (result.type === "commit") {
         return [
             `Commit: ${result.hash}`,
+            `Date: ${date}`,
             `Author: ${result.author}`,
             `Message: ${result.message}`,
             `Files: ${result.files.join(", ")}`,
@@ -132,6 +168,7 @@ function formatResult(result: SearchResult): string {
     } else {
         return [
             `PR #${result.number}: ${result.title}`,
+            `Date: ${date}`,
             `Author: ${result.author}`,
             `Description: ${result.description ?? "none"}`,
             `Files: ${result.files.join(", ")}`,
