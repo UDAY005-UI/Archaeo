@@ -1,7 +1,7 @@
 import Database from "better-sqlite3";
 import { ConflictWarning, SearchResult } from "../types";
 import { getCurrentDiff } from "./git.service";
-import { generateQuestionVector } from "./embedder.service";
+import { generateQueryVector } from "./embedder.service";
 import { searchCommits, searchPRs } from "../storage/vectors.repo";
 
 export function extractChangedFiles(diff: {
@@ -69,7 +69,7 @@ export async function findPastDecisions(
 ): Promise<SearchResult[]> {
     try {
         const query = `changes to ${files.join(", ")}`;
-        const vector = await generateQuestionVector(query);
+        const vector = await generateQueryVector(query);
 
         const commits = searchCommits(db, vector, 20);
         const prs = searchPRs(db, vector, 10);
