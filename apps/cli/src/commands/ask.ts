@@ -7,6 +7,8 @@ import { getApiKey } from "../config/keys";
 import { error, info, printAnswer } from "../utils/display";
 import { AskOptions } from "../types";
 import { exitWithError } from "../utils/errors";
+import { getGithubToken } from "../config/keys";
+import { getFileTree } from "../services/git.service";
 
 export function validateQuestion(question: string): boolean {
     if (!question || question.trim().length === 0) {
@@ -34,6 +36,8 @@ export async function runAsk(
     question: string,
     options: AskOptions
 ): Promise<void> {
+    const fileTree = getFileTree();
+
     try {
         if (!validateQuestion(question)) return;
         if (!checkIndexExists()) return;
@@ -54,7 +58,7 @@ export async function runAsk(
 
         info(`Searching ${total} commits...`);
 
-        const context = await search(db, question);
+        const context = await search(db, question, fileTree);
 
         if (context.results.length === 0) {
             exitWithError("No relevant history found for this question.");
@@ -69,18 +73,7 @@ export async function runAsk(
             return;
         }
 
-        const timeline = context.results
-            .filter((r) => r.type === "commit")
-            .slice(0, 10)
-            .map((r) => ({
-                hash: r.hash ?? "",
-                message: r.message ?? "",
-                author: r.author ?? "",
-                timestamp: r.timestamp,
-                type: "commit" as const,
-            }));
-
-        printAnswer(question, answer.answer, timeline);
+        printAnswer(question, answer.answer);
     } catch (err) {
         error(`Failed to answer question: ${err}`);
         throw err;

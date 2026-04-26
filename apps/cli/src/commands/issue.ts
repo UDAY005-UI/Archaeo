@@ -53,7 +53,7 @@ export async function runIssue(number: number): Promise<void> {
         info(`Searching issue ${number}...`);
 
         const githubToken = getGithubToken();
-        const fileTree = await getFileTree(githubToken);
+        const fileTree = await getFileTree();
         const files = await getRelevantFiles(issue, fileTree);
         const context = buildIssueContext(issue, files);
         const answer = await issueCommandSynthesise(context);
