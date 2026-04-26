@@ -1,5 +1,6 @@
 import simpleGit from "simple-git";
 import { Commit, Issue } from "../types";
+import { execSync } from "child_process";
 
 const git = simpleGit();
 
@@ -106,26 +107,7 @@ export async function getOpenIssues(token?: string | null): Promise<Issue[]> {
     return issues.filter((i: any) => !i.pull_request) as Issue[];
 }
 
-export async function getFileTree(token?: string | null): Promise<string[]> {
-    const remoteUrl = await getRemoteUrl();
-
-    if (!remoteUrl || remoteUrl === null) return [];
-
-    const { owner, repo } = parseGitHubRemoteUrl(remoteUrl);
-    const headers: Record<string, string> = {
-        Accept: "application/vnd.github+json",
-    };
-    if (token) headers["Authorization"] = `Bearer ${token}`;
-
-    const res = await fetch(
-        `https://api.github.com/repos/${owner}/${repo}/git/trees/HEAD?recursive=1`,
-        { headers }
-    );
-
-    if (!res.ok) throw new Error(`GitHub API error: ${res.status}`);
-    const data = await res.json();
-
-    return data.tree
-        .filter((f: any) => f.type === "blob")
-        .map((f: any) => f.path);
+export function getFileTree(): string[] {
+    const output = execSync("git ls-files").toString().trim();
+    return output.split("\n").filter(Boolean);
 }
