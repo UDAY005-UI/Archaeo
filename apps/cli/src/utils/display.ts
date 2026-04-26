@@ -22,16 +22,10 @@ export function info(msg: string): void {
     return;
 }
 
-export function printAnswer(
-    question: string,
-    answer: string,
-    timeline: TimelineEntry[]
-): void {
+export function printAnswer(question: string, answer: string): void {
     const width = process.stdout.columns || 80;
 
     console.log(chalk.bold("\nQuestion: ") + chalk.dim(question));
-    printTimeline(timeline);
-    console.log(chalk.bold("\nSummary:"));
 
     const words = answer.split(" ");
     let line = "";
