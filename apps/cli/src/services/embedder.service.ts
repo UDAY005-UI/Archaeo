@@ -49,8 +49,14 @@ export async function generatePrVector(pr: PullRequest): Promise<number[]> {
 }
 
 export async function generateQuestionVector(
-    question: string
+    question: string,
+    files: string[]
 ): Promise<number[]> {
+    const text = `${question}\nFiles: ${files.join(", ")}`;
+    return embed(text);
+}
+
+export async function generateQueryVector(question: string): Promise<number[]> {
     return embed(question);
 }
 
