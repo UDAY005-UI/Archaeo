@@ -10,6 +10,7 @@ import { detectConflicts } from "./services/conflict.service";
 import * as gitService from "./services/git.service";
 import * as githubService from "./services/github.service";
 import path from "path";
+import { getFileTree } from "./services/git.service";
 
 export type Container = {
     db: Database.Database;
@@ -27,7 +28,7 @@ export function buildContainer(): Container {
 
     return {
         db,
-        search: (question: string) => search(db, question),
+        search: (question: string) => search(db, question, getFileTree()),
         detect: () => detectConflicts(db),
         git: gitService,
         github: githubService,
