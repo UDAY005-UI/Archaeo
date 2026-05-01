@@ -7,7 +7,6 @@ import { getApiKey } from "../config/keys";
 import { error, info, printAnswer } from "../utils/display";
 import { AskOptions } from "../types";
 import { exitWithError } from "../utils/errors";
-import { getGithubToken } from "../config/keys";
 import { getFileTree } from "../services/git.service";
 
 export function validateQuestion(question: string): boolean {
