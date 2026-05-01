@@ -21,23 +21,58 @@ export function saveFileRelation(
     }
 }
 
+export function extractFileDiff(
+    diffSummary: string | null,
+    filePath: string
+): string {
+    if (!diffSummary) return "";
+    const sections = diffSummary.split(/^diff --git /m);
+    const match = sections.find(
+        (s) => s.includes(`a/${filePath}`) || s.includes(`b/${filePath}`)
+    );
+    return match ? `diff --git ${match}`.trim() : "";
+}
+
 export function getFileHistory(
     db: Database.Database,
     filePath: string
-): FileGraphEntry[] | null {
+): { entry: FileGraphEntry; message: string; diff: string }[] | null {
     try {
         const rows = db
-            .prepare(
-                `
-            SELECT * FROM file_graph WHERE file_path = ?
-            `
-            )
+            .prepare(`SELECT * FROM file_graph WHERE file_path = ?`)
             .all(filePath) as FileGraphEntry[] | undefined;
 
-        if (!rows) return null;
+        if (!rows || rows.length === 0) return null;
 
-        if (rows.length === 0) return null;
-        return rows;
+        const result: {
+            entry: FileGraphEntry;
+            message: string;
+            diff: string;
+        }[] = [];
+
+        for (const entry of rows) {
+            if (entry.entity_type !== "commit") continue;
+
+            const commit = db
+                .prepare(
+                    `SELECT message, diff_summary FROM commits WHERE hash = ?`
+                )
+                .get(entry.entity_id) as
+                | { message: string; diff_summary: string }
+                | undefined;
+
+            if (!commit) continue;
+
+            const diff = extractFileDiff(commit.diff_summary, filePath);
+
+            result.push({
+                entry,
+                message: commit.message,
+                diff,
+            });
+        }
+
+        return result.length === 0 ? null : result;
     } catch (err) {
         console.error("Failed to fetch history:", err);
         throw err;

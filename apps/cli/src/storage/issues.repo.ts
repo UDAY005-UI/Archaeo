@@ -25,6 +25,7 @@ export function saveMany(db: Database.Database, issues: Issue[]): void {
     if (!issues || issues.length === 0) return;
 
     const insert = db.prepare(`
+        INSERT OR REPLACE INTO issues (number, title, body, labels, comments)
         VALUES (?, ?, ?, ?, ?)
         `);
 
