@@ -203,6 +203,12 @@ export function buildFileRetrievalUserMessage(
     issue: Issue,
     tree: string[]
 ): string {
+    const comments = Array.isArray(issue.comments)
+        ? issue.comments
+              .map((c: any) => (typeof c === "string" ? c : c.body))
+              .join("\n\n")
+        : "";
+
     return `Issue #${issue.number}: ${issue.title}
 
 Description:
@@ -211,7 +217,7 @@ ${issue.body}
 Labels: ${issue.labels?.join(", ") || "none"}
 
 Comments:
-${issue.comments.join("\n\n")}
+${comments}
 
 Repository file tree:
 ${tree.join("\n")}
