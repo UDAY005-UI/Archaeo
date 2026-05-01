@@ -1,7 +1,8 @@
 {
-  "name": "@archaeo/cli",
+  "name": "archaeo-cli",
   "packageManager": "yarn@4.13.0",
   "description": "Query your git history in plain English",
+  "version": "1.0.8",
   "type": "commonjs",
   "bin": {
     "archaeo": "./dist/index.js"
