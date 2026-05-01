@@ -16,14 +16,24 @@ export async function getAllCommits(since?: number): Promise<Commit[]> {
             message: c.message,
             author: c.author_name,
             timestamp: new Date(c.date).getTime(),
-            files: await getCommitDiff(c.hash), // ← fetch real files
+            files: await getCommitDiffFiles(c.hash),
+            diff_summary: await getCommitDiff(c.hash),
         }))
     );
 
     return commits;
 }
 
-export async function getCommitDiff(hash: string): Promise<string[]> {
+export async function getCommitDiff(hash: string): Promise<string> {
+    try {
+        const result = await git.show([hash, "-p", "--no-color"]);
+        return result;
+    } catch {
+        return "";
+    }
+}
+
+export async function getCommitDiffFiles(hash: string): Promise<string[]> {
     try {
         const diffSummary = await git.diffSummary([`${hash}^!`]);
         return diffSummary.files.map((f) => f.file);
@@ -60,8 +70,19 @@ export async function getFileCommits(filePath: string): Promise<Commit[]> {
 }
 
 export async function getRemoteUrl(): Promise<string | null> {
-    const url = await git.remote(["get-url", "origin"]);
-    return url?.trim() ?? null;
+    try {
+        const git = simpleGit();
+        const upstream = await git
+            .remote(["get-url", "upstream"])
+            .catch(() => null);
+        if (upstream) return upstream.trim();
+        const origin = await git
+            .remote(["get-url", "origin"])
+            .catch(() => null);
+        return origin ? origin.trim() : null;
+    } catch {
+        return null;
+    }
 }
 
 export async function getHeadHash(): Promise<string | null> {
