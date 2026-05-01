@@ -12,6 +12,12 @@ import { getFileTree } from "../services/git.service";
 import { getRelevantFiles } from "../services/ai.service";
 
 export function buildIssueContext(issue: Issue, files: string[]): string {
+    const comments = Array.isArray(issue.comments)
+        ? issue.comments
+              .map((c: any) => (typeof c === "string" ? c : c.body))
+              .join("\n\n")
+        : "";
+
     return `Issue #${issue.number}: ${issue.title}
 
 Labels: ${issue.labels?.join(", ") || "none"}
@@ -20,7 +26,7 @@ Description:
 ${issue.body}
 
 Comments:
-${issue.comments.join("\n\n")}
+${comments}
 
 Relevant files:
 ${files.join("\n")}
@@ -34,14 +40,16 @@ export async function runIssue(number: number): Promise<void> {
         const apiKey = getApiKey();
         if (!apiKey) {
             exitWithError(
-                "No API key found. Set ANTHROPIC_API_KEY or run: archaeo config --key"
+                "No API key found. Set API_KEY or run: archaeo config --key"
             );
         }
 
         const total = count(db);
 
         if (total === 0) {
-            exitWithError("Index is empty. Run: archaeo init");
+            exitWithError(
+                "No issues indexed. Make sure your repo has open issues and run: archaeo init"
+            );
         }
 
         const issue = findByNumber(db, number);
