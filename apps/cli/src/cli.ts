@@ -1,7 +1,6 @@
 import { Command } from "commander";
 import { runAsk } from "./commands/ask";
 import { runHistory } from "./commands/history";
-import { runCheck } from "./commands/check";
 import { runUpdate } from "./commands/update";
 import { runStatus } from "./commands/status";
 import { runConfig } from "./commands/config";
@@ -68,13 +67,6 @@ program
     .description("Show history of a specific file")
     .action(async (file) => {
         await runHistory(file);
-    });
-
-program
-    .command("check")
-    .description("Check current changes for conflicts with past decisions")
-    .action(async () => {
-        await runCheck();
     });
 
 program
