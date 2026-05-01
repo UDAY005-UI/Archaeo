@@ -4,9 +4,8 @@ import simpleGit from "simple-git";
 import { exitWithError } from "../utils/errors";
 import { getFileHistory } from "../storage/graph.repo";
 import { initDB } from "../storage/db";
-import { findByHash } from "../storage/commits.repo";
 import { info, printTimeline } from "../utils/display";
-import { TimelineEntry } from "../types";
+import chalk from "chalk";
 
 const git = simpleGit();
 
@@ -49,25 +48,40 @@ export async function runHistory(filePath: string): Promise<void> {
         return;
     }
 
-    const timeline: TimelineEntry[] = history.map((entry) => {
-        if (entry.entity_type === "commit") {
-            const commit = findByHash(db, String(entry.entity_id));
-            return {
-                hash: String(entry.entity_id),
-                message: commit?.message ?? "",
-                author: commit?.author ?? "",
-                timestamp: entry.timestamp,
-                type: entry.entity_type,
-            };
-        }
-        return {
-            hash: String(entry.entity_id),
-            message: "",
-            author: "",
-            timestamp: entry.timestamp,
-            type: entry.entity_type,
-        };
-    });
+    for (const h of history) {
+        const date = new Date(h.entry.timestamp).toLocaleDateString("en-US", {
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+        });
 
-    printTimeline(timeline);
+        const hash = String(h.entry.entity_id).slice(0, 7);
+        const border = chalk.dim("─".repeat(60));
+
+        console.log(`\n${border}`);
+        console.log(`${chalk.yellow("●")} ${chalk.bold(h.message)}`);
+        console.log(
+            `  ${chalk.dim(date)} · ${chalk.cyan(hash)} · ${chalk.magenta("@" + (h.entry.author ?? "unknown"))}`
+        );
+
+        if (h.diff) {
+            console.log();
+            const lines = h.diff
+                .split("\n")
+                .filter((line) => line.startsWith("+") || line.startsWith("-"))
+                .filter(
+                    (line) => !line.startsWith("+++") && !line.startsWith("---")
+                );
+
+            for (const line of lines) {
+                if (line.startsWith("+")) {
+                    console.log(chalk.green(line));
+                } else {
+                    console.log(chalk.red(line));
+                }
+            }
+        }
+
+        console.log(`${border}\n`);
+    }
 }
