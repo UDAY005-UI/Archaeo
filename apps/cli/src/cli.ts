@@ -117,11 +117,11 @@ program
     });
 
 program
-    .command("issue")
+    .command("issue <number>")
     .description("Analyze any open issue on github")
     .option("--json", "output as JSON")
-    .action(async (issueNumber) => {
-        await runIssue(issueNumber);
+    .action(async (number, options) => {
+        await runIssue(parseInt(number));
     });
 
 export { program };
