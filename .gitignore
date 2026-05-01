@@ -40,3 +40,5 @@ yarn-error.log*
 packages/typescript-config/tsconfig.tsbuildinfo
 
 yarn.lock
+
+*.tsbuildinfo
