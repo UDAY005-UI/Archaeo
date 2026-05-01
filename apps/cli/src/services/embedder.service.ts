@@ -1,5 +1,9 @@
-import { pipeline, FeatureExtractionPipeline } from "@xenova/transformers";
+import os from "os";
+import path from "path";
+import { env, pipeline, FeatureExtractionPipeline } from "@xenova/transformers";
 import { Commit, PullRequest } from "../types";
+
+env.cacheDir = path.join(os.homedir(), ".archaeo", "models");
 
 let extractor: FeatureExtractionPipeline | null = null;
 
