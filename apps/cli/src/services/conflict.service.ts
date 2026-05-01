@@ -1,4 +1,5 @@
 import Database from "better-sqlite3";
+import { execSync } from "child_process";
 import { ConflictWarning, SearchResult } from "../types";
 import { getCurrentDiff } from "./git.service";
 import { generateQueryVector } from "./embedder.service";
@@ -20,45 +21,45 @@ export function extractChangedFiles(diff: {
         .filter(Boolean);
 }
 
-export function isReversion(
-    current: SearchResult,
-    past: SearchResult
-): boolean {
-    // if current change touches same files as a past decision
-    const sharedFiles = current.files.filter((f) => past.files.includes(f));
-    if (sharedFiles.length === 0) return false;
+export function getRemovedLines(diff: string): string[] {
+    return diff
+        .split("\n")
+        .filter((line) => line.startsWith("-") && !line.startsWith("---"))
+        .map((line) => line.slice(1).trim())
+        .filter((line) => line.length > 5);
+}
 
-    // if messages are semantically opposite (basic check)
-    const currentMsg = (current.message ?? current.title ?? "").toLowerCase();
-    const pastMsg = (past.message ?? past.title ?? "").toLowerCase();
-
-    const reversionKeywords = [
-        "revert",
-        "undo",
-        "rollback",
-        "remove",
-        "replace",
-        "switch back",
-    ];
-    return (
-        reversionKeywords.some((k) => currentMsg.includes(k)) &&
-        sharedFiles.length > 0 &&
-        pastMsg.length > 0
-    );
+export function findCommitThatAddedLine(line: string): string | null {
+    try {
+        const escaped = line.replace(/"/g, '\\"').replace(/`/g, "\\`");
+        const result = execSync(
+            `git log -S "${escaped}" --oneline -1 2>/dev/null`
+        )
+            .toString()
+            .trim();
+        return result || null;
+    } catch {
+        return null;
+    }
 }
 
 export function buildConflictWarning(
     changedFile: string,
-    pastDecision: SearchResult
+    removedLine: string,
+    commitInfo: string
 ): ConflictWarning {
+    const parts = commitInfo.split(" ");
+    const hash = parts[0] ?? "";
+    const message = parts.slice(1).join(" ");
+
     return {
         file: changedFile,
-        currentChange: `Changes detected in ${changedFile}`,
+        currentChange: `Removing: "${removedLine}"`,
         conflictingPR: {
-            number: pastDecision.number ?? 0,
-            title: pastDecision.title ?? pastDecision.message ?? "",
-            mergedAt: pastDecision.timestamp,
-            reason: pastDecision.description ?? pastDecision.message ?? "",
+            number: 0,
+            title: message,
+            mergedAt: 0,
+            reason: `This line was deliberately added in commit ${hash}: "${message}"`,
         },
     };
 }
@@ -74,7 +75,6 @@ export async function findPastDecisions(
         const commits = searchCommits(db, vector, 20);
         const prs = searchPRs(db, vector, 10);
 
-        // only return results that touch the same files
         return [...commits, ...prs].filter((result) =>
             files.some((f) => result.files.includes(f))
         );
@@ -93,16 +93,24 @@ export async function detectConflicts(
 
         if (changedFiles.length === 0) return [];
 
-        const pastDecisions = await findPastDecisions(db, changedFiles);
+        const combined = diff.staged || diff.unstaged;
+        const removedLines = getRemovedLines(combined);
+
+        if (removedLines.length === 0) return [];
 
         const warnings: ConflictWarning[] = [];
+        const seen = new Set<string>();
 
         for (const file of changedFiles) {
-            const relevant = pastDecisions.filter((d) =>
-                d.files.includes(file)
-            );
-            for (const decision of relevant) {
-                warnings.push(buildConflictWarning(file, decision));
+            for (const line of removedLines) {
+                const commitInfo = findCommitThatAddedLine(line);
+                if (!commitInfo) continue;
+
+                const key = `${file}:${commitInfo}`;
+                if (seen.has(key)) continue;
+                seen.add(key);
+
+                warnings.push(buildConflictWarning(file, line, commitInfo));
             }
         }
 
